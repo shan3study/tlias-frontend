@@ -161,7 +161,6 @@ const deptFromref = ref();
   <!-- v-model="dialogFormVisible" 控制对话框的显示与隐藏 true显示 false隐藏 -->
   <el-dialog v-model="dialogFormVisible" :title="formTitle" width="500">
     <el-form :model="dept" :rules="rules" ref="deptFromref">
-      {{ dept }}
       <el-form-item label="部门名称" label-width="80px" prop="name">
         <el-input v-model="dept.name" />
       </el-form-item>
