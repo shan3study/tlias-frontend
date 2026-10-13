@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue'
-import { queryAllApi } from '@/api/emp'
+import { queryAllApi ,addEmpApi} from '@/api/emp'
 import {queryAllApi as queryAllDeptApi} from '@/api/dept'
 import { ElMessage } from 'element-plus'
 
@@ -17,6 +17,20 @@ const jobs = ref([{ name: '班主任', value: '1' },{ name: '讲师', value: '2'
 const depts = ref([])
 
 
+//新增/修改表单
+const employee = ref({
+  username: '',
+  name: '',
+  gender: '',
+  phone: '',
+  job: '',
+  salary: '',
+  deptId: '',
+  entryDate: '',
+  image: '',
+  exprList: []
+})
+
 
 /* 分页参数 */
 const currentPage = ref(1)
@@ -28,6 +42,24 @@ const total = ref(0)
 const addEmp = () => {
   dialogVisible.value = true;
   dialogTitle.value = '新增员工';
+  //清空表单
+  employee.value = {
+    username: '',
+    name: '',
+    gender: '',
+    phone: '',
+    job: '',
+    salary: '',
+    deptId: '',
+    entryDate: '',
+    image: '',
+    exprList: []
+  }
+
+   //清空表单校验
+  if(empFromref.value){
+    empFromref.value.resetFields();
+  }
 }
 
 /* 修改员工 */
@@ -80,19 +112,7 @@ const queryAllDept = async() => {
   }
 }
 
-//新增/修改表单
-const employee = ref({
-  username: '',
-  name: '',
-  gender: '',
-  phone: '',
-  job: '',
-  salary: '',
-  deptId: '',
-  entryDate: '',
-  image: '',
-  exprList: []
-})
+
 
 //添加工作经历
 const addExpr = () => {
@@ -152,8 +172,46 @@ const beforeAvatarUpload = (rawFile) => {
   return true
 }
 
+//校验规则
+const rules = ref({
+  //blur:失去焦点时校验
+  username: [{ required: true, message: '请输入用户名', trigger: 'blur' },{ min: 2, max: 20, message: '用户名长度必须在2到20之间', trigger: 'blur' }],
+  name: [{ required: true, message: '请输入姓名', trigger: 'blur' },{ min: 2, max: 10, message: '姓名长度必须在2到10之间', trigger: 'blur' }],
+  gender: [{ required: true, message: '请选择性别', trigger: 'change' }],
+  //正则表达式校验手机号 pattern:表示正则校验
+  /* 
+    /。。。。。/  表示正则表达式   ^表示以...开头，$表示以...结尾  
+    1[3456789]表示以1开头，后面跟着3、4、5、6、7、8、9中的一个数字
+    \d{9}表示后面跟着9个数字
+  */
+  phone: [{ required: true, message: '请输入手机号', trigger: 'blur' },{ pattern: /^1[3456789]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' }],
+})
 
+//保存员工
+const saveEmp = async() => {
+  //表单校验
+  if(!empFromref.value) return
+  empFromref.value.validate(async(valid)=>{
+    if(valid){
+      //校验通过，新增员工
+      const result = await addEmpApi(employee.value);
+      if(result.code){
+        ElMessage.success('新增成功');
+        //新增成功后，关闭弹窗
+        dialogVisible.value = false;
+        //新增成功后，清空表单
+        search();
+      }else{//新增失败
+        ElMessage.error(result.msg);
+      }
+    }else{
+      //校验不通过，提示用户
+      ElMessage.error('表单校验不通过');
+    }
+  })
+}
 
+const empFromref = ref();
 
 </script>
 
@@ -199,9 +257,9 @@ const beforeAvatarUpload = (rawFile) => {
           {{scope.row.gender == 1 ? '男' : '女'}}
         </template> 
       </el-table-column>
-      <el-table-column label="头像" min-width="100" align="center">
+      <el-table-column label="头像" min-width="50" align="center">
         <template #default="scope">
-          <img :src="scope.row.image" height="100">
+          <img :src="scope.row.image" height="50">
         </template>
       </el-table-column>
       <el-table-column prop="deptName" label="所属部门" min-width="100" align="center"/>
@@ -242,19 +300,18 @@ const beforeAvatarUpload = (rawFile) => {
 
 <!-- 新增/修改员工的对话框 -->
   <el-dialog v-model="dialogVisible" :title="dialogTitle">
-    {{ employee }}
-      <el-form :model="employee" label-width="80px">
+      <el-form :model="employee" label-width="80px" :rules="rules" ref="empFromref">
         <!-- 基本信息 -->
         <!-- 第一行 -->
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="用户名">
+            <el-form-item label="用户名" prop="username">
               <el-input v-model="employee.username" placeholder="请输入员工用户名，2-20个字"></el-input>
             </el-form-item>
           </el-col>
           
           <el-col :span="12">
-            <el-form-item label="姓名">
+            <el-form-item label="姓名" prop="name">
               <el-input v-model="employee.name" placeholder="请输入员工姓名，2-10个字"></el-input>
             </el-form-item>
           </el-col>
@@ -263,7 +320,7 @@ const beforeAvatarUpload = (rawFile) => {
         <!-- 第二行 -->
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="性别">
+            <el-form-item label="性别" prop="gender">
               <el-select v-model="employee.gender" placeholder="请选择性别" style="width: 100%;">
                 <el-option v-for="g in genders" :key="g.value" :label="g.name" :value="g.value" />
               </el-select>
@@ -271,7 +328,7 @@ const beforeAvatarUpload = (rawFile) => {
           </el-col>
 
           <el-col :span="12">
-            <el-form-item label="手机号">
+            <el-form-item label="手机号" prop="phone">
               <el-input v-model="employee.phone" placeholder="请输入员工手机号"></el-input>
             </el-form-item>
           </el-col>
@@ -370,7 +427,7 @@ const beforeAvatarUpload = (rawFile) => {
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="">保存</el-button>
+          <el-button type="primary" @click="saveEmp">保存</el-button>
         </span>
       </template>
   </el-dialog>
