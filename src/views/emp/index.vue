@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue'
-import { queryAllApi ,addEmpApi} from '@/api/emp'
+import { queryAllApi ,addEmpApi,queryEmpByIdApi,updateEmpApi} from '@/api/emp'
 import {queryAllApi as queryAllDeptApi} from '@/api/dept'
 import { ElMessage } from 'element-plus'
 
@@ -62,10 +62,26 @@ const addEmp = () => {
   }
 }
 
-/* 修改员工 */
-const updateEmp = (id) => {
-  dialogVisible.value = true;
-  dialogTitle.value = '修改员工';
+//点击编辑按钮，查询员工详情
+const edit = async(id) => {
+  //根据id查询员工
+  const result = await queryEmpByIdApi(id);
+  if(result.code){//查询成功
+    dialogVisible.value = true;
+    dialogTitle.value = '修改员工';
+    employee.value = result.data;
+    //将exprList中的end和begin赋值给exprDate
+    let exprList = employee.value.exprList;
+    if(exprList && exprList.length > 0){
+      exprList.forEach((expr) => {
+        expr.exprDate = [expr.begin, expr.end]
+      })
+    }
+  }else{
+    ElMessage.error(result.msg);
+  }
+  
+  
 }
 
 
@@ -194,9 +210,14 @@ const saveEmp = async() => {
   empFromref.value.validate(async(valid)=>{
     if(valid){
       //校验通过，新增员工
-      const result = await addEmpApi(employee.value);
+      let result;
+      if(employee.value.id){//如果有id，就执行修改
+        result = await updateEmpApi(employee.value);
+      }else{//如果没有id，就执行新增
+        result = await addEmpApi(employee.value);
+      }
       if(result.code){
-        ElMessage.success('新增成功');
+        ElMessage.success('保存成功');
         //新增成功后，关闭弹窗
         dialogVisible.value = false;
         //新增成功后，清空表单
@@ -277,7 +298,7 @@ const empFromref = ref();
       <el-table-column prop="updateTime" label="最后操作时间" min-width="160" align="center" />
       <el-table-column label="操作" min-width="150" align="center">
         <template #default="scope">
-          <el-button type="primary" size="mini" @click="updateEmp(scope.row.id)"><el-icon><EditPen /></el-icon>编辑</el-button>
+          <el-button type="primary" size="mini" @click="edit(scope.row.id)"><el-icon><EditPen /></el-icon>编辑</el-button>
           <el-button type="danger" size="mini"><el-icon><Delete /></el-icon>删除</el-button>
         </template>
       </el-table-column>

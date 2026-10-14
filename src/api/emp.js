@@ -9,3 +9,13 @@ export const queryAllApi = (name, gender, begin, end, page, pageSize) => {
 export const addEmpApi = (emp) => {
     return request.post('/emps', emp)
 }
+
+//根据id查询员工
+export const queryEmpByIdApi = (id) => {
+    return request.get(`/emps/${id}`)
+}
+
+//修改员工
+export const updateEmpApi = (emp) => {
+    return request.put('/emps', emp)
+}
