@@ -1,8 +1,8 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue'
-import { queryAllApi ,addEmpApi,queryEmpByIdApi,updateEmpApi} from '@/api/emp'
+import { queryAllApi ,addEmpApi,queryEmpByIdApi,updateEmpApi,deleteEmpApi} from '@/api/emp'
 import {queryAllApi as queryAllDeptApi} from '@/api/dept'
-import { ElMessage } from 'element-plus'
+import { ElMessage,ElMessageBox } from 'element-plus'
 
 
 
@@ -232,6 +232,86 @@ const saveEmp = async() => {
   })
 }
 
+//删除员工
+const deleteById = async (id) => {
+  //弹出消息提示框
+  ElMessageBox.confirm(
+    '确认删除该员工吗？',
+    '提示',
+    {
+      confirmButtonText: '确认',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  )
+    .then(async() => {
+      //确认删除
+      const result = await deleteEmpApi(id);
+      if(result.code){
+        //提示信息
+        ElMessage.success('删除成功');
+        //刷新员工列表
+        search();
+      }else{
+        //提示信息
+        ElMessage.error(result.msg);
+      }
+    })
+    .catch(() => {
+      //取消删除
+      ElMessage.info('删除已取消');
+    })
+}
+
+//记录选中的员工id
+const selectedIds = ref([]);
+//复选框变化时触发的函数 item:选中的行数据
+const handleSelectionChange = (val) => {
+  /* val.forEach((item) => { 会导致重复添加
+    selectedIds.value.push(item.id);
+  }) */
+  //map:将数组中的每个元素都执行一次函数，返回一个新的数组
+  selectedIds.value = val.map(item => item.id);
+}
+
+//批量删除员工
+const deleteByIds = async () => {
+  //弹出消息提示框
+  ElMessageBox.confirm(
+    '确认删除选中的所有员工吗？',
+    '提示',
+    {
+      confirmButtonText: '确认',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  )
+    .then(async() => {
+      //判断选中的员工是否为空
+      if(selectedIds.value.length && selectedIds.value.length !== 0){
+        //确认删除
+        const result = await deleteEmpApi(selectedIds.value);
+        if(result.code){
+          //提示信息
+          ElMessage.success('删除成功');
+          //刷新员工列表
+          search();
+        }else{
+          //提示信息
+          ElMessage.error(result.msg);
+        }
+      }else{
+        //提示信息
+        ElMessage.error('请选择要删除的员工');
+      }
+    })
+    .catch(() => {
+      //取消删除
+      ElMessage.info('删除已取消');
+    })
+}
+
+//对话框绑定了执行表单校验的对象
 const empFromref = ref();
 
 </script>
@@ -264,13 +344,13 @@ const empFromref = ref();
 
   <!-- 新增和批量删除按钮 -->
   <div class="container">
-    <el-button type="primary" @click="addEmp">新增员工</el-button>
-    <el-button type="danger" @click="">批量删除</el-button>
+    <el-button type="primary" @click="addEmp">+新增员工</el-button>
+    <el-button type="danger" @click="deleteByIds">-批量删除</el-button>
   </div>
 
   <!-- 员工列表表格 -->
   <div class="container">
-    <el-table :data="empList" style="width: 100%" border>
+    <el-table :data="empList" style="width: 100%" border @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column prop="name" label="姓名" min-width="100" align="center" />
       <el-table-column label="性别" min-width="80" align="center" >
@@ -299,7 +379,7 @@ const empFromref = ref();
       <el-table-column label="操作" min-width="150" align="center">
         <template #default="scope">
           <el-button type="primary" size="mini" @click="edit(scope.row.id)"><el-icon><EditPen /></el-icon>编辑</el-button>
-          <el-button type="danger" size="mini"><el-icon><Delete /></el-icon>删除</el-button>
+          <el-button type="danger" size="mini" @click="deleteById(scope.row.id)"><el-icon><Delete /></el-icon>删除</el-button>
         </template>
       </el-table-column>
     </el-table>

@@ -19,3 +19,8 @@ export const queryEmpByIdApi = (id) => {
 export const updateEmpApi = (emp) => {
     return request.put('/emps', emp)
 }
+
+//删除员工
+export const deleteEmpApi = (ids) => {
+    return request.delete(`/emps?ids=${ids}`)
+}
