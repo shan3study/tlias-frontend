@@ -8,6 +8,7 @@ import { ElMessage,ElMessageBox } from 'element-plus'
 
 const searchEmp = ref({ name: '', gender: '', date: [], begin: '', end: '' })
 const empList = ref([])
+const token = ref('')
 
 /* 员工性别列表 */
 const genders = ref([{ name: '男', value: '1' },{ name: '女', value: '2' }])
@@ -118,7 +119,17 @@ const clear = () => {
 onMounted(() => {
   search();
   queryAllDept();
+  gettoken();
 })
+
+//获取LocalStorage中的token
+const gettoken=()=>{
+  const loginUser = JSON.parse(localStorage.getItem('loginUser'));
+  if(loginUser && loginUser.token){
+    token.value = loginUser.token;
+  }
+}
+
 
 //查询部门列表
 const queryAllDept = async() => {
@@ -474,6 +485,7 @@ const empFromref = ref();
               <el-upload
                 class="avatar-uploader"
                 action="/api/upload"
+                :headers="{'token':token}"
                 :show-file-list="false"
                 :on-success="handleAvatarSuccess"
                 :before-upload="beforeAvatarUpload"
